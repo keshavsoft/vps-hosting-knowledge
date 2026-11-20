@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VPS Cloud Hosting Master Handbook — KeshavSoft Fleet Architecture</title>
+  <meta name="description" content="The unified handbook bridging GoDaddy DNS, Caddy Front-Door Ingress Gateway, and Ubuntu Native Systemd Backend Daemons on KeshavSoft VPS.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌐</text></svg>">
+  <style>
+    :root {
+      --bg: #0a0d14;
+      --card-bg: #111622;
+      --card-border: #1e2638;
+      --card-hover: #1c2436;
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+      --primary: #38bdf8;
+      --primary-glow: rgba(56, 189, 248, 0.16);
+      --ubuntu: #e95420;
+      --ubuntu-glow: rgba(233, 84, 32, 0.16);
+      --accent: #10b981;
+      --teal: #14b8a6;
+      --warning: #f59e0b;
+      --code-bg: #030712;
+      --sidebar-bg: #070a10;
+      --header-bg: rgba(10, 13, 20, 0.9);
+      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    [data-theme="light"] {
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --card-border: #e2e8f0;
+      --card-hover: #f1f5f9;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --primary: #0284c7;
+      --primary-glow: rgba(2, 132, 199, 0.12);
+      --ubuntu: #d84315;
+      --ubuntu-glow: rgba(216, 67, 21, 0.12);
+      --accent: #059669;
+      --teal: #0d9488;
+      --warning: #d97706;
+      --code-bg: #0f172a;
+      --sidebar-bg: #f1f5f9;
+      --header-bg: rgba(248, 250, 252, 0.9);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      transition: background-color 0.2s ease, color 0.2s ease;
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: var(--header-bg);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--card-border);
+      padding: 0.75rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .brand-icon {
+      font-size: 1.5rem;
+      background: linear-gradient(135deg, var(--primary), var(--ubuntu));
+      padding: 0.35rem 0.5rem;
+      border-radius: 8px;
+      color: #030712;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .brand-title {
+      font-size: 1.15rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-badge {
+      font-size: 0.7rem;
+      font-family: var(--font-mono);
+      background: linear-gradient(135deg, var(--primary-glow), var(--ubuntu-glow));
+      color: var(--text);
+      border: 1px solid var(--card-border);
+      padding: 0.15rem 0.45rem;
+      border-radius: 999px;
+      font-weight: 600;
+      text-transform: uppercase;
+      margin-left: 0.4rem;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .search-input {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      color: var(--text);
+      padding: 0.4rem 0.8rem;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      width: 180px;
+      outline: none;
+      transition: all 0.2s;
+    }
+    .search-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px var(--primary-glow);
+      width: 240px;
+    }
+
+    .theme-toggle, .btn-link {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 0.45rem 0.75rem;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      text-decoration: none;
+      font-family: var(--font-mono);
+      transition: all 0.2s;
+    }
+    .theme-toggle:hover, .btn-link:hover {
+      color: var(--text);
+      border-color: var(--primary);
+    }
+
+    .container {
+      display: flex;
+      flex: 1;
+      max-width: 1500px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    aside.sidebar {
+      width: 310px;
+      border-right: 1px solid var(--card-border);
+      padding: 1.5rem 1rem;
+      position: sticky;
+      top: 60px;
+      height: calc(100vh - 60px);
+      overflow-y: auto;
+      background: var(--sidebar-bg);
+      flex-shrink: 0;
+    }
+
+    .sidebar-section-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin: 1.25rem 0 0.5rem 0.5rem;
+    }
+
+    .sidebar-nav {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+
+    .sidebar-nav a {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.45rem 0.65rem;
+      border-radius: 6px;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.88rem;
+      transition: all 0.15s;
+    }
+    .sidebar-nav a:hover {
+      color: var(--text);
+      background: var(--card-bg);
+    }
+    .sidebar-nav a.active {
+      color: var(--primary);
+      background: var(--primary-glow);
+      font-weight: 600;
+    }
+
+    main.content {
+      flex: 1;
+      padding: 2.5rem 3rem 5rem;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    h1, h2, h3, h4 { color: var(--text); letter-spacing: -0.02em; }
+    h1 { font-size: 2.6rem; font-weight: 900; margin-bottom: 0.75rem; line-height: 1.2; }
+    p.lead { font-size: 1.15rem; color: var(--text-muted); margin-bottom: 2rem; line-height: 1.6; }
+    h2 { font-size: 1.65rem; font-weight: 800; margin: 3rem 0 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--card-border); display: flex; align-items: center; gap: 0.5rem; }
+    h3 { font-size: 1.25rem; font-weight: 700; margin: 1.75rem 0 0.75rem; }
+    p { margin-bottom: 1.2rem; }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .card:hover { border-color: var(--card-hover); }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1.25rem;
+      margin-bottom: 2rem;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.2rem 0.5rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-family: var(--font-mono);
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .badge-primary { background: var(--primary-glow); color: var(--primary); border: 1px solid var(--primary); }
+    .badge-ubuntu { background: var(--ubuntu-glow); color: var(--ubuntu); border: 1px solid var(--ubuntu); }
+    .badge-accent { background: rgba(16, 185, 129, 0.15); color: var(--accent); border: 1px solid var(--accent); }
+
+    pre {
+      background: var(--code-bg);
+      color: #e2e8f0;
+      padding: 1.2rem;
+      border-radius: 8px;
+      border: 1px solid var(--card-border);
+      font-family: var(--font-mono);
+      font-size: 0.88rem;
+      line-height: 1.55;
+      overflow-x: auto;
+      margin-bottom: 1.25rem;
+      position: relative;
+    }
+    code { font-family: var(--font-mono); font-size: 0.9em; background: rgba(148, 163, 184, 0.12); color: var(--primary); padding: 0.15rem 0.35rem; border-radius: 4px; }
+    pre code { background: transparent; padding: 0; color: inherit; }
+
+    .copy-btn {
+      position: absolute;
+      top: 0.6rem;
+      right: 0.6rem;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: var(--text-muted);
+      border-radius: 4px;
+      padding: 0.25rem 0.55rem;
+      font-size: 0.75rem;
+      cursor: pointer;
+      font-family: var(--font-mono);
+      transition: all 0.15s;
+    }
+    .copy-btn:hover { color: #fff; background: rgba(255, 255, 255, 0.18); }
+
+    table { width: 100%; border-collapse: collapse; margin-bottom: 1.75rem; font-size: 0.9rem; }
+    th, td { padding: 0.85rem 1rem; text-align: left; border-bottom: 1px solid var(--card-border); }
+    th { background: rgba(255, 255, 255, 0.02); color: var(--text); font-weight: 700; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    tr:hover td { background: rgba(255, 255, 255, 0.015); }
+
+    .callout { border-left: 4px solid var(--primary); background: var(--card-bg); padding: 1.2rem; border-radius: 0 8px 8px 0; margin-bottom: 1.5rem; }
+    .callout-ubuntu { border-left-color: var(--ubuntu); }
+    .callout-accent { border-left-color: var(--accent); }
+
+    @media (max-width: 900px) {
+      aside.sidebar { display: none; }
+      main.content { padding: 1.5rem; }
+      .search-input { width: 130px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation Header -->
+  <header>
+    <a href="#" class="brand">
+      <span class="brand-icon">🌐</span>
+      <div>
+        <span class="brand-title">VPS Cloud Hosting Handbook</span>
+        <span class="brand-badge">Unified Fleet</span>
+      </div>
+    </a>
+
+    <div class="header-actions">
+      <input type="text" id="doc-search" class="search-input" placeholder="Search master handbook..." oninput="filterContent(this.value)">
+      <button class="theme-toggle" onclick="toggleTheme()" title="Toggle Light/Dark Theme">🌓 Theme</button>
+      <a href="https://github.com/keshavsoft" target="_blank" class="btn-link">GitHub ↗</a>
+    </div>
+  </header>
+
+  <!-- Layout Container -->
+  <div class="container">
+
+    <!-- Sticky Left Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-section-title">Master Architecture</div>
+      <ul class="sidebar-nav">
+        <li><a href="#two-halves" class="active">🌓 The Two Halves of Cloud Hosting</a></li>
+        <li><a href="#lifecycle">🧭 3-Stage VPS Subdomain Lifecycle</a></li>
+      </ul>
+
+      <div class="sidebar-section-title">The Two Technology Stacks</div>
+      <ul class="sidebar-nav">
+        <li><a href="#front-door">🛡️ Front Door: The Caddy Suite</a></li>
+        <li><a href="#backend-engine">🐧 Backend Engine: Ubuntu Systemd</a></li>
+      </ul>
+
+      <div class="sidebar-section-title">Playbooks &amp; Ground Truth</div>
+      <ul class="sidebar-nav">
+        <li><a href="#journey">🚀 End-to-End Onboarding Playbook</a></li>
+        <li><a href="#triage">🚨 502 Bad Gateway Triage Tree</a></li>
+        <li><a href="#fleet-matrix">🖥️ Production Server Fleet Matrix</a></li>
+        <li><a href="#sister-portals">📚 Sister Knowledge Portals</a></li>
+      </ul>
+    </aside>
+
+    <!-- Main Content Stream -->
+    <main class="content">
+
+      <!-- Hero Header -->
+      <h1>Master VPS Cloud Hosting Handbook</h1>
+      <p class="lead">
+        The unified architectural bridge connecting GoDaddy DNS, Caddy Front-Door Ingress Gateway, and native Ubuntu Systemd Backend Daemons on the KeshavSoft server fleet.
+      </p>
+
+      <!-- ============================================================ -->
+      <!-- SECTION 1: THE TWO HALVES OF CLOUD HOSTING                   -->
+      <!-- ============================================================ -->
+      <section id="two-halves">
+        <h2><span>🌓</span> The Two Halves of Cloud Hosting</h2>
+        <p>
+          Cloud application hosting on a production Linux VPS splits cleanly into two complementary halves:
+        </p>
+
+        <div class="grid-2">
+          
+          <!-- Half 1: Front Door -->
+          <div class="card" style="border-left: 4px solid var(--primary);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 0.5rem;">
+              <span class="badge badge-primary">Half 1 &bull; Front Door</span>
+              <span style="font-size: 0.75rem; color: var(--text-muted); font-family: var(--font-mono);">Ports 80 / 443</span>
+            </div>
+            <h3>Caddy Reverse Proxy &amp; Gateway</h3>
+            <p style="font-size: 0.9rem; color: var(--text-muted);">
+              Receives incoming public HTTPS requests, issues automatic Let's Encrypt / ZeroSSL TLS certificates, and routes traffic via <code>/etc/caddy/caddy.json</code>.
+            </p>
+            <div style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--primary);">
+              Tools: caddy-cli &bull; caddy-subdomain &bull; caddy-fileserver
+            </div>
+          </div>
+
+          <!-- Half 2: Backend Engine -->
+          <div class="card" style="border-left: 4px solid var(--ubuntu);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 0.5rem;">
+              <span class="badge badge-ubuntu">Half 2 &bull; Backend Engine</span>
+              <span style="font-size: 0.75rem; color: var(--text-muted); font-family: var(--font-mono);">Ports 3000..9328</span>
+            </div>
+            <h3>Ubuntu Systemd Daemons</h3>
+            <p style="font-size: 0.9rem; color: var(--text-muted);">
+              Runs your Node.js code in <code>/root/KeshavSoft/&lt;app&gt;</code> under kernel-level supervisor units in <code>/etc/systemd/system/</code> with auto-restart and boot persistence.
+            </p>
+            <div style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--ubuntu);">
+              Tool: ubuntu-service-cli
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- SECTION 2: 3-STAGE LIFECYCLE                                 -->
+      <!-- ============================================================ -->
+      <section id="lifecycle">
+        <h2><span>🧭</span> The 3-Stage VPS Subdomain Maturity Model</h2>
+        <p>
+          Never try to configure GoDaddy DNS, Caddy reverse proxy, Node.js ports, and systemd services all in one leap. Follow the 3-stage maturity model:
+        </p>
+
+        <div class="card callout-accent">
+          <h3>Stage 1: Smoke Flight Check (Zero Disk / Zero Code)</h3>
+          <p style="font-size: 0.9rem;">
+            Verifies that GoDaddy DNS reaches <code>103.174.102.116</code> and Let's Encrypt TLS issues a valid certificate in memory:
+          </p>
+          <pre><code>npx caddy-subdomain probe call.keshavsoft.com</code><button class="copy-btn" onclick="copyText('npx caddy-subdomain probe call.keshavsoft.com', this)">Copy</button></pre>
+        </div>
+
+        <div class="card callout-accent">
+          <h3>Stage 2: Static File Server (Real Disk I/O)</h3>
+          <p style="font-size: 0.9rem;">
+            Provisions <code>/usr/share/call.keshavsoft.com</code>, writes starter <code>index.html</code>, and configures Caddy's native <code>file_server</code> handler:
+          </p>
+          <pre><code>npx caddy-fileserver init call.keshavsoft.com</code><button class="copy-btn" onclick="copyText('npx caddy-fileserver init call.keshavsoft.com', this)">Copy</button></pre>
+        </div>
+
+        <div class="card callout-accent">
+          <h3>Stage 3: Full Dynamic Application (Process Supervisor + Reverse Proxy)</h3>
+          <p style="font-size: 0.9rem;">
+            When server-side Node.js or REST APIs are needed, bind internal port via systemd and promote the Caddy route:
+          </p>
+          <pre><code># 1. Audit and manage systemd service unit:
+npx ubuntu-service-cli check appointment.keshavsoft.com
+
+# 2. Promote Caddy route to forward traffic to localhost:3000:
+npx caddy-subdomain add appointment.keshavsoft.com 3000</code><button class="copy-btn" onclick="copyText('npx caddy-subdomain add appointment.keshavsoft.com 3000', this)">Copy</button></pre>
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- SECTION 3: EMERGENCY TRIAGE                                  -->
+      <!-- ============================================================ -->
+      <section id="triage">
+        <h2><span>🚨</span> 502 Bad Gateway Triage Tree</h2>
+        <p>When an active site throws a <code>502 Bad Gateway</code>, use this exact 30-second triage checklist:</p>
+
+        <div class="card" style="border-left: 4px solid var(--warning);">
+          <h3>Step 1: Is Caddy or Node.js at Fault?</h3>
+          <p style="font-size: 0.9rem; color: var(--text-muted);">
+            If Caddy returns the 502 page, <strong>Caddy is 100% healthy!</strong> The error proves public traffic reached Caddy on port 443, but Caddy found nothing listening on the target internal port.
+          </p>
+          <pre><code># Test internal port directly on the VPS:
+curl http://localhost:3000</code><button class="copy-btn" onclick="copyText('curl http://localhost:3000', this)">Copy</button></pre>
+        </div>
+
+        <div class="card" style="border-left: 4px solid var(--ubuntu);">
+          <h3>Step 2: Inspect Systemd Service Unit</h3>
+          <pre><code># Check systemd daemon status:
+npx ubuntu-service-cli check appointment.keshavsoft.com
+
+# Or tail live application console error logs:
+journalctl -u appointment.keshavsoft.com.service -n 50 -f</code><button class="copy-btn" onclick="copyText('journalctl -u appointment.keshavsoft.com.service -n 50 -f', this)">Copy</button></pre>
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- SECTION 4: SISTER KNOWLEDGE BASES                            -->
+      <!-- ============================================================ -->
+      <section id="sister-portals">
+        <h2><span>📚</span> Sister Knowledge Portals</h2>
+        <p>Deep-dive handbooks across the KeshavSoft cloud hosting ecosystem:</p>
+
+        <div class="grid-2">
+          
+          <div class="card">
+            <h3>🛡️ Caddy Knowledge Base</h3>
+            <p style="font-size: 0.88rem; color: var(--text-muted);">
+              Complete guide to Caddyfile JSON AST blueprints, reverse proxying, subdomains, static routes, and TLS automation.
+            </p>
+            <a href="https://keshavsoft.github.io/caddy-knowledge/" target="_blank" style="color: var(--primary); font-family: var(--font-mono); font-size: 0.85rem; text-decoration: none;">Explore caddy-knowledge ↗</a>
+          </div>
+
+          <div class="card">
+            <h3>🐧 Ubuntu Knowledge Base</h3>
+            <p style="font-size: 0.88rem; color: var(--text-muted);">
+              Master reference for native Linux systemd daemons, internal port ranges, crash recovery, and ubuntu-service-cli.
+            </p>
+            <a href="https://keshavsoft.github.io/ubuntu-knowledge/" target="_blank" style="color: var(--ubuntu); font-family: var(--font-mono); font-size: 0.85rem; text-decoration: none;">Explore ubuntu-knowledge ↗</a>
+          </div>
+
+        </div>
+      </section>
+
+    </main>
+
+  </div>
+
+  <script>
+    function toggleTheme() {
+      const current = document.documentElement.getAttribute('data-theme');
+      const target = current === 'light' ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', target);
+      localStorage.setItem('vps-theme', target);
+    }
+
+    const savedTheme = localStorage.getItem('vps-theme');
+    if (savedTheme) {
+      document.documentElement.setAttribute('data-theme', savedTheme);
+    }
+
+    function copyText(text, btn) {
+      navigator.clipboard.writeText(text);
+      const original = btn.innerText;
+      btn.innerText = 'Copied!';
+      btn.style.color = '#10b981';
+      setTimeout(() => {
+        btn.innerText = original;
+        btn.style.color = '';
+      }, 1500);
+    }
+
+    function filterContent(query) {
+      const q = query.toLowerCase().trim();
+      const sections = document.querySelectorAll('main.content section');
+      sections.forEach(sec => {
+        const text = sec.innerText.toLowerCase();
+        sec.style.display = text.includes(q) ? 'block' : 'none';
+      });
+    }
+
+    window.addEventListener('scroll', () => {
+      const sections = document.querySelectorAll('main.content section');
+      const navLinks = document.querySelectorAll('.sidebar-nav a');
+      let currentSectionId = '';
+
+      sections.forEach(sec => {
+        const top = sec.offsetTop - 120;
+        if (window.scrollY >= top) {
+          currentSectionId = sec.getAttribute('id');
+        }
+      });
+
+      navLinks.forEach(link => {
+        link.classList.remove('active');
+        if (link.getAttribute('href') === `#${currentSectionId}`) {
+          link.classList.add('active');
+        }
+      });
+    });
+  </script>
+</body>
+</html>

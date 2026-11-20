@@ -1,0 +1,31 @@
+{
+  "name": "vps-hosting-knowledge",
+  "version": "1.0.0",
+  "description": "The Master Unified VPS Cloud Hosting Handbook: Connecting GoDaddy DNS, Caddy Front-Door Gateway, and Ubuntu Backend Services on KeshavSoft Fleet.",
+  "homepage": "https://keshavsoft.github.io/vps-hosting-knowledge/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/keshavsoft/vps-hosting-knowledge.git"
+  },
+  "bugs": {
+    "url": "https://github.com/keshavsoft/vps-hosting-knowledge/issues"
+  },
+  "license": "ISC",
+  "author": "KeshavSoft",
+  "type": "module",
+  "scripts": {
+    "start": "npx serve ."
+  },
+  "keywords": [
+    "vps-hosting",
+    "caddy",
+    "ubuntu",
+    "systemd",
+    "caddy-cli",
+    "caddy-subdomain",
+    "caddy-fileserver",
+    "ubuntu-service-cli",
+    "handbook",
+    "keshavsoft"
+  ]
+}
